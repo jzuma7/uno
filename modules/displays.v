@@ -88,11 +88,11 @@ always @(*)
         4'd7: hex5 = 7'b1111000;
         4'd8: hex5 = 7'b0000000;
         4'd9: hex5 = 7'b0011000;
-        4'd10: hex4 = 7'b0111111; // Skip (Traço no meio)
-        4'd11: hex4 = 7'b0000111; // Reverse (Letra 't') T DE TURN
-        4'd12: hex4 = 7'b0100001; // Draw Two (Letra 'd')
-        4'd13: hex4 = 7'b0110110; // Wild (Três barras)
-        4'd14: hex4 = 7'b0001110; // Wild Draw Four (Letra 'F')
+        4'd10: hex5 = 7'b0111111; // Skip (Traço no meio)
+        4'd11: hex5 = 7'b0000111; // Reverse (Letra 't') T DE TURN
+        4'd12: hex5 = 7'b0100001; // Draw Two (Letra 'd')
+        4'd13: hex5 = 7'b0110110; // Wild (Três barras)
+        4'd14: hex5 = 7'b0001110; // Wild Draw Four (Letra 'F')
         default: hex5 = 7'b1111111;
     endcase case(cor_top)
      // O zero será vermelho, o 1 será verde, o  2 será amarelo e o 3 será azul 
@@ -112,11 +112,11 @@ always @(*)
         4'd7: hex3 = 7'b1111000;
         4'd8: hex3 = 7'b0000000;
         4'd9: hex3 = 7'b0010000;
-        4'd10: hex4 = 7'b0111111; // Skip (Traço no meio)
-        4'd11: hex4 = 7'b0000111; // Reverse (Letra 't')
-        4'd12: hex4 = 7'b0100001; // Draw Two (Letra 'd')
-        4'd13: hex4 = 7'b0110110; // Wild (Três barras)
-        4'd14: hex4 = 7'b0001110; // Wild Draw Four (Letra 'F')
+        4'd10: hex3 = 7'b0111111; // Skip (Traço no meio)
+        4'd11: hex3 = 7'b0000111; // Reverse (Letra 't')
+        4'd12: hex3 = 7'b0100001; // Draw Two (Letra 'd')
+        4'd13: hex3 = 7'b0110110; // Wild (Três barras)
+        4'd14: hex3 = 7'b0001110; // Wild Draw Four (Letra 'F')
         default: hex3 = 7'b1111111;
     endcase case(cor_player)
         2'b00: hex2: 7'b1001110;
