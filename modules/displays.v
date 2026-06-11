@@ -96,10 +96,10 @@ always @(*)
         default: hex5 = 7'b1111111;
     endcase case(cor_top)
      // O zero será vermelho, o 1 será verde, o  2 será amarelo e o 3 será azul 
-        2'b00: hex4: 7'b    1001110;
-        2'b1: hex4: 7'b0010000;
-        2'b2: hex4: 7'b0010001;
-        2'b3: hex4: 7'b0000011;
+        2'd0: hex4: 7'b1001110;
+        2'd1: hex4: 7'b0010000;
+        2'd2: hex4: 7'b0010001;
+        2'd3: hex4: 7'b0000011;
         default: hex4: 7'b1111111;
     endcase case(n_card_player)
          4'd0: hex3  = 7'b1000000;
@@ -119,10 +119,10 @@ always @(*)
         4'd14: hex3 = 7'b0001110; // Wild Draw Four (Letra 'F')
         default: hex3 = 7'b1111111;
     endcase case(cor_player)
-        2'b00: hex2: 7'b1001110;
-        2'b1: hex2: 7'b0010000;
-        2'b2: hex2: 7'b0010001;
-        2'b3: hex2: 7'b0000011;
+        2'd0: hex2: 7'b1001110;
+        2'd1: hex2: 7'b0010000;
+        2'd2: hex2: 7'b0010001;
+        2'd3: hex2: 7'b0000011;
         default: 7'b1111111;
     endcase
 
