@@ -10,12 +10,6 @@ module uno_fsm (
   output [8:0]  LEDG
 );
 
-  // ── Memory operations ──────────────────────────────────────────
-  localparam OPERATION_IDLE         = 2'b00;
-  localparam OPERATION_DRAW_CARD    = 2'b01;
-  localparam OPERATION_DISCARD_CARD = 2'b10;
-  localparam OPERATION_LOAD_CARD    = 2'b11;
-
   // ── FSM states ─────────────────────────────────────────────────
   localparam STATE_INIT_DECK          = 5'd0;
   localparam STATE_INIT_SHUFFLE       = 5'd1;
@@ -144,7 +138,7 @@ module uno_fsm (
   // ── Mux combinacional ──────────────────────────────────────────
   always @ (*) begin
     // defaults
-    memory_controller = OPERATION_IDLE;
+    memory_controller = `OPERATION_IDLE;
     card_in           = 6'b0;
     player_write_enable = 1'b0;
     cpu_write_enable    = 1'b0;
@@ -154,14 +148,14 @@ module uno_fsm (
 
     case (state)
       STATE_INIT_DECK: begin
-        memory_controller = deck_initializer_write_enable ? OPERATION_LOAD_CARD
-                                                          : OPERATION_IDLE;
+        memory_controller = deck_initializer_write_enable ? `OPERATION_LOAD_CARD
+                                                          : `OPERATION_IDLE;
         card_in = deck_initializer_card_out;
       end
 
       STATE_INIT_SHUFFLE, STATE_RESHUFFLE: begin
-        memory_controller = shuffler_write_enable ? OPERATION_LOAD_CARD
-                                                  : OPERATION_IDLE;
+        memory_controller = shuffler_write_enable ? `OPERATION_LOAD_CARD
+                                                  : `OPERATION_IDLE;
         card_in = shuffler_card_out;
       end
 
@@ -180,7 +174,7 @@ module uno_fsm (
       end
 
       STATE_DISCARD_INITIAL: begin
-        memory_controller = OPERATION_DISCARD_CARD;
+        memory_controller = `OPERATION_DISCARD_CARD;
         card_in           = card_in_reg;
       end
 
@@ -189,7 +183,7 @@ module uno_fsm (
       end
 
       STATE_PLAYER_PLAY: begin
-        memory_controller = OPERATION_DISCARD_CARD;
+        memory_controller = `OPERATION_DISCARD_CARD;
         card_in           = card_in_reg;
       end
 
@@ -200,7 +194,7 @@ module uno_fsm (
       STATE_PLAYER_DRAW_CHECK: begin
         player_end_turn = 1'b1;
         if (drawn_card_valid) begin
-          memory_controller = OPERATION_DISCARD_CARD;
+          memory_controller = `OPERATION_DISCARD_CARD;
           card_in           = drawn_card_adjusted;
         end else begin
           player_write_enable = 1'b1;
@@ -212,7 +206,7 @@ module uno_fsm (
       end
 
       STATE_CPU_PLAY: begin
-        memory_controller = OPERATION_DISCARD_CARD;
+        memory_controller = `OPERATION_DISCARD_CARD;
         card_in           = card_in_reg;
       end
 
