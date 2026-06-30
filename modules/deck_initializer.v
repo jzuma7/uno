@@ -12,11 +12,15 @@ module deck_initializer(
   localparam STATE_DONE = 2'b10;
   localparam STATE_GENERATING = 2'b01;
 
-  reg  done;
-  reg  write_enable;
+  reg  done_reg;
+  reg  write_enable_reg;
   reg [1:0] state;
-  reg [5:0] card_out;
+  reg [5:0] card_out_reg;
   reg [6:0] card_counter;
+
+  assign done = done_reg;
+  assign write_enable = write_enable_reg;
+  assign card_out = card_out_reg;
 
   reg [1:0]  color;
   reg [6:0]  position;
@@ -88,20 +92,20 @@ module deck_initializer(
 
     // Carta final: wilds não têm cor
     if (card_counter >= 7'd104)
-      card_out = {2'b00, `VALUE_WILD_DRAW_FOUR};
+      card_out_reg = {2'b00, `VALUE_WILD_DRAW_FOUR};
     else if (card_counter >= 7'd100)
-      card_out = {2'b00, `VALUE_WILD};
+      card_out_reg = {2'b00, `VALUE_WILD};
     else
-      card_out = {color, card_value};
+      card_out_reg = {color, card_value};
 
-    write_enable = (state == STATE_GENERATING);
+    write_enable_reg = (state == STATE_GENERATING);
   end
 
   always @ (posedge clock) begin
     if(reset) begin
       state <= STATE_GENERATING;
       card_counter <= 7'd0;
-      done <= 1'b0;
+      done_reg <= 1'b0;
     end else begin
       case(state)
         STATE_GENERATING: begin
@@ -112,7 +116,7 @@ module deck_initializer(
           end
         end
         STATE_DONE: begin
-            done <= 1'b1;
+            done_reg <= 1'b1;
           end
         default: state <= STATE_GENERATING;
       endcase

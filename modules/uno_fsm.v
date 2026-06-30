@@ -10,7 +10,6 @@ module uno_fsm (
   output [8:0]  LEDG
 );
 
-  // ── FSM states ─────────────────────────────────────────────────
   localparam STATE_INIT_DECK          = 5'd0;
   localparam STATE_INIT_SHUFFLE       = 5'd1;
   localparam STATE_DEAL_PLAYER        = 5'd2;
@@ -32,7 +31,6 @@ module uno_fsm (
   localparam STATE_WIN                = 5'd18;
   localparam STATE_LOSE               = 5'd19;
 
-  // ── FSM registers ──────────────────────────────────────────────
   reg [4:0] state;
   reg [4:0] return_state;   // estado de retorno após CHECK_DECK / RESHUFFLE
   reg [5:0] drawn_card_reg; // carta capturada no draw do player
@@ -41,14 +39,12 @@ module uno_fsm (
   reg       penalize_player; // 0 = CPU penalizada, 1 = player penalizado
   reg       cpu_drew;        // flag: CPU já comprou neste turno
 
-  // ── Clock e reset (gerados pelo buttons_interface) ─────────────
   wire clock;
   wire reset;
   wire select;
   wire play;
   wire draw;
 
-  // ── Memória ────────────────────────────────────────────────────
   reg  [5:0] card_in_reg;
   wire [5:0] memory_card_out;
   wire [5:0] top_card;
@@ -62,12 +58,10 @@ module uno_fsm (
   wire       shuffler_read_source;
   wire [6:0] shuffler_read_address;
 
-  // ── deck_initializer ───────────────────────────────────────────
   wire       deck_initializer_done;
   wire       deck_initializer_write_enable;
   wire [5:0] deck_initializer_card_out;
 
-  // ── shuffler ───────────────────────────────────────────────────
   reg        shuffler_start;
   reg        shuffler_controller;
   reg  [6:0] shuffler_card_count;
@@ -75,7 +69,6 @@ module uno_fsm (
   wire       shuffler_write_enable;
   wire [5:0] shuffler_card_out;
 
-  // ── card_dealer ────────────────────────────────────────────────
   reg        dealer_start;
   reg  [2:0] dealer_cards_to_deal;
   wire       dealer_done;
@@ -83,7 +76,6 @@ module uno_fsm (
   wire [1:0] dealer_memory_controller;
   wire [5:0] dealer_card_out;
 
-  // ── player_hand ────────────────────────────────────────────────
   wire [5:0] player_hand_card_in;
   reg        player_turn_signal;
   reg        player_write_enable;
@@ -94,7 +86,6 @@ module uno_fsm (
   wire [6:0] player_hand_count;
   wire       player_valid_play;
 
-  // ── cpu_hand ───────────────────────────────────────────────────
   reg        cpu_turn_signal;
   reg        cpu_write_enable;
   wire       cpu_play_card;
@@ -104,9 +95,10 @@ module uno_fsm (
   wire [6:0] cpu_hand_count;
   wire       cpu_valid_play;
 
-  // ── LED latch + timer ──────────────────────────────────────────
-  reg [17:0] LEDR;
-  reg [8:0]  LEDG;
+  reg [17:0] LEDR_REG;
+  assign LEDR = LEDR_REG;
+  reg [8:0]  LEDG_REG;
+  assign LEDG = LEDG_REG;
   reg player_turn_latch, cpu_turn_latch;
   reg invalid_move_latch, draw_action_latch, skip_action_latch;
   reg win_latch, lose_latch;
@@ -115,7 +107,6 @@ module uno_fsm (
   wire led_draw_action;
   wire led_skip_action;
 
-  // ── Sinais auxiliares ──────────────────────────────────────────
   wire drawn_card_valid;
 
   assign drawn_card_valid = (drawn_card_reg[5:4] == top_card[5:4]) ||
@@ -128,16 +119,13 @@ module uno_fsm (
                                ? {top_card[5:4], drawn_card_reg[3:0]}
                                : drawn_card_reg;
 
-  // ── Clock e reset ──────────────────────────────────────────────
   assign clock = CLOCK_50;
 
   // card_in do player_hand: drawn_card_reg no check do draw, senão dealer
   assign player_hand_card_in = (state == STATE_PLAYER_DRAW_CHECK) ? drawn_card_reg
                                                                     : dealer_card_out;
 
-  // ── Mux combinacional ──────────────────────────────────────────
   always @ (*) begin
-    // defaults
     memory_controller = `OPERATION_IDLE;
     card_in           = 6'b0;
     player_write_enable = 1'b0;
@@ -227,8 +215,6 @@ module uno_fsm (
       end
     endcase
   end
-
-  // ── Instâncias ─────────────────────────────────────────────────
 
   buttons_interface buttons_interface_inst (
     .clock   (clock),
@@ -349,7 +335,6 @@ module uno_fsm (
     .hex0        (HEX0)
   );
 
-  // ── FSM sequencial ────────────────────────────────────────────
   always @ (posedge clock) begin
     if (reset) begin
       state                <= STATE_INIT_DECK;
@@ -371,7 +356,6 @@ module uno_fsm (
 
       case (state)
 
-        // ── Init ────────────────────────────────────────────────
         STATE_INIT_DECK: begin
           if (deck_initializer_done) begin
             shuffler_start      <= 1'b1;
@@ -420,7 +404,6 @@ module uno_fsm (
           state <= STATE_PLAYER_TURN;
         end
 
-        // ── Turno do player ─────────────────────────────────────
         STATE_PLAYER_TURN: begin
           if (player_play_card) begin
             if (player_card_out[3:0] >= `VALUE_WILD)
@@ -512,7 +495,6 @@ module uno_fsm (
           end
         end
 
-        // ── Turno da CPU ────────────────────────────────────────
         STATE_CPU_TURN: begin
           if (cpu_play_card) begin
             if (cpu_card_out[3:0] >= `VALUE_WILD)
@@ -576,7 +558,6 @@ module uno_fsm (
             state <= STATE_CPU_TURN;
         end
 
-        // ── Estados compartilhados ──────────────────────────────
         STATE_CHECK_DECK: begin
           if (deck_empty) begin
             shuffler_start      <= 1'b1;
@@ -620,7 +601,6 @@ module uno_fsm (
     end
   end
 
-  // ── Pulsos de LED ──────────────────────────────────────────────
   assign led_draw_action =
     ((state == STATE_PLAYER_DRAW_WAIT) && dealer_write_enable) ||
     ((state == STATE_CPU_DRAW_WAIT)    && dealer_write_enable) ||
@@ -632,7 +612,6 @@ module uno_fsm (
     ((state == STATE_PLAYER_DRAW_CHECK) && drawn_card_valid &&
      (drawn_card_reg[3:0] == `VALUE_SKIP || drawn_card_reg[3:0] == `VALUE_REVERSE));
 
-  // ── win / lose latches ─────────────────────────────────────────
   always @(posedge clock) begin
     if (reset) begin
       win_latch  <= 1'b0;
@@ -643,7 +622,6 @@ module uno_fsm (
     end
   end
 
-  // ── player_turn latch + timer ──────────────────────────────────
   always @(posedge clock) begin
     if (reset) begin
       player_turn_latch <= 1'b0;
@@ -660,7 +638,6 @@ module uno_fsm (
     end
   end
 
-  // ── cpu_turn latch + timer ─────────────────────────────────────
   always @(posedge clock) begin
     if (reset) begin
       cpu_turn_latch <= 1'b0;
@@ -677,7 +654,6 @@ module uno_fsm (
     end
   end
 
-  // ── invalid_move latch + timer ─────────────────────────────────
   always @(posedge clock) begin
     if (reset) begin
       invalid_move_latch <= 1'b0;
@@ -694,7 +670,6 @@ module uno_fsm (
     end
   end
 
-  // ── draw_action latch + timer ──────────────────────────────────
   always @(posedge clock) begin
     if (reset) begin
       draw_action_latch <= 1'b0;
@@ -711,7 +686,6 @@ module uno_fsm (
     end
   end
 
-  // ── skip_action latch + timer ──────────────────────────────────
   always @(posedge clock) begin
     if (reset) begin
       skip_action_latch <= 1'b0;
@@ -728,20 +702,19 @@ module uno_fsm (
     end
   end
 
-  // ── saída dos LEDs ─────────────────────────────────────────────
   always @(*) begin
-    LEDR = 18'b0;
-    LEDG = 9'b0;
+    LEDR_REG = 18'b0;
+    LEDG_REG = 9'b0;
     if (win_latch) begin
-      LEDR[5] = 1'b1;
+      LEDR_REG[5] = 1'b1;
     end else if (lose_latch) begin
-      LEDR[6] = 1'b1;
+      LEDR_REG[6] = 1'b1;
     end else begin
-      LEDR[0] = player_turn_latch;
-      LEDR[1] = cpu_turn_latch;
-      LEDR[2] = invalid_move_latch;
-      LEDR[3] = draw_action_latch;
-      LEDR[4] = skip_action_latch;
+      LEDR_REG[0] = player_turn_latch;
+      LEDR_REG[1] = cpu_turn_latch;
+      LEDR_REG[2] = invalid_move_latch;
+      LEDR_REG[3] = draw_action_latch;
+      LEDR_REG[4] = skip_action_latch;
     end
   end
 
