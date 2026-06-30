@@ -1,4 +1,4 @@
-`include "include/card_definitions.vh"
+`include "../include/card_definitions.vh"
 
 module special_card_controller (
   input [5:0] played_card,

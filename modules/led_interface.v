@@ -1,4 +1,4 @@
-`include "timing_definitions.vh"
+`include "../include/timing_definitions.vh"
 
 module led_interface(
   input clock,
