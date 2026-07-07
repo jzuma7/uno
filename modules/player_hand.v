@@ -1,4 +1,5 @@
 `include "../include/timing_definitions.vh"
+`include "../include/memory_definitions.vh"
 
 module player_hand (
   input clock,
@@ -6,9 +7,7 @@ module player_hand (
   input turn,
   input select,
   input play,
-  input draw,
   input valid_play,
-  input special_draw,
   input write_enable,
   input [5:0] card_in,
   input end_turn,
@@ -22,14 +21,12 @@ module player_hand (
 
   localparam STATE_IDLE = 2'b00;
   localparam STATE_PLAY = 2'b01;
-  localparam STATE_DRAW = 2'b10;
   localparam STATE_DONE = 2'b11;
 
   reg turn_done_reg;
-  reg card_received;
   reg [1:0] state;
   reg [6:0] hand_count_reg;
-  reg [5:0] player_hand [0:63];
+  reg [5:0] player_hand [0:`DECK_SIZE - 1]; // pior caso: mão acumula quase todo o baralho via penalidades/draws
   reg [6:0] player_hand_play_pointer;
 
   assign turn_done = turn_done_reg;
@@ -41,13 +38,13 @@ module player_hand (
   always @(posedge clock) begin
     if (reset) begin
       turn_done_reg <= 0;
-      card_received <= 0;
       hand_count_reg <= 0;
       state <= STATE_IDLE;
       player_hand_play_pointer <= 0;
     end else begin
+      // AVISO: game_fsm não deve pulsar write_enable enquanto state==STATE_PLAY
+      // e valid_play==1 — conflito de NBA em hand_count_reg.
       if (write_enable) begin
-        card_received <= 1;
         hand_count_reg <= hand_count_reg + 1;
         player_hand[hand_count_reg] <= card_in;
       end
@@ -58,9 +55,6 @@ module player_hand (
           if (turn) begin
             state <= STATE_PLAY;
             player_hand_play_pointer <= 0;
-          end else if (special_draw) begin
-            card_received <= 0;
-            state <= STATE_DRAW;
           end
         end
 
@@ -72,21 +66,11 @@ module player_hand (
             hand_count_reg <= hand_count_reg - 1;
             player_hand_play_pointer <= 0;
             state <= STATE_DONE;
-          end else if (draw) begin
-            card_received <= 0;
-            state <= STATE_DRAW;
           end else if (select && hand_count_reg > 0) begin
             if (player_hand_play_pointer + 1 >= hand_count_reg)
               player_hand_play_pointer <= 0;
             else
               player_hand_play_pointer <= player_hand_play_pointer + 1;
-          end
-        end
-
-        STATE_DRAW: begin
-          if (card_received && !write_enable) begin
-            card_received <= 0;
-            state <= STATE_DONE;
           end
         end
 

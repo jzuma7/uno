@@ -95,17 +95,12 @@ module uno_fsm (
   wire [6:0] cpu_hand_count;
   wire       cpu_valid_play;
 
-  reg [17:0] LEDR_REG;
-  assign LEDR = LEDR_REG;
-  reg [8:0]  LEDG_REG;
-  assign LEDG = LEDG_REG;
-  reg player_turn_latch, cpu_turn_latch;
-  reg invalid_move_latch, draw_action_latch, skip_action_latch;
-  reg win_latch, lose_latch;
-  reg [31:0] player_turn_timer, cpu_turn_timer;
-  reg [31:0] invalid_move_timer, draw_action_timer, skip_action_timer;
   wire led_draw_action;
   wire led_skip_action;
+
+  wire [2:0] player_play_action;
+  wire [2:0] player_draw_action;
+  wire [2:0] cpu_play_action;
 
   wire drawn_card_valid;
 
@@ -279,11 +274,13 @@ module uno_fsm (
     .clock         (clock),
     .reset         (reset),
     .turn          (player_turn_signal),
-    .select        (select),
-    .play          (play),
-    .draw          (1'b0),
+    // select/play só valem durante STATE_PLAYER_TURN — fora dessa janela
+    // (ex: sequência de draw) player_hand.state fica preso em STATE_PLAY
+    // (só sai via end_turn ou play&&valid_play) e reagiria a um play/select
+    // que a uno_fsm não está mais observando, dessincronizando os dois.
+    .select        (select && player_turn_signal),
+    .play          (play && player_turn_signal),
     .valid_play    (player_valid_play),
-    .special_draw  (1'b0),
     .write_enable  (player_write_enable),
     .card_in       (player_hand_card_in),
     .end_turn      (player_end_turn),
@@ -318,6 +315,21 @@ module uno_fsm (
     .played_card (cpu_card_out),
     .top_card    (top_card),
     .valid_play  (cpu_valid_play)
+  );
+
+  special_card_controller player_play_action_decoder (
+    .played_card (player_card_out),
+    .action      (player_play_action)
+  );
+
+  special_card_controller player_draw_action_decoder (
+    .played_card (drawn_card_reg),
+    .action      (player_draw_action)
+  );
+
+  special_card_controller cpu_play_action_decoder (
+    .played_card (cpu_card_out),
+    .action      (cpu_play_action)
   );
 
   display_interface display_interface_inst (
@@ -410,13 +422,7 @@ module uno_fsm (
               card_in_reg <= {top_card[5:4], player_card_out[3:0]};
             else
               card_in_reg <= player_card_out;
-            case (player_card_out[3:0])
-              `VALUE_SKIP, `VALUE_REVERSE: action_reg <= 3'd1;
-              `VALUE_DRAW_TWO:             action_reg <= 3'd2;
-              `VALUE_WILD:                 action_reg <= 3'd3;
-              `VALUE_WILD_DRAW_FOUR:       action_reg <= 3'd4;
-              default:                     action_reg <= 3'd0;
-            endcase
+            action_reg <= player_play_action;
             state <= STATE_PLAYER_PLAY;
           end else if (draw) begin
             state <= STATE_PLAYER_DRAW_START;
@@ -466,29 +472,22 @@ module uno_fsm (
 
         STATE_PLAYER_DRAW_CHECK: begin
           if (drawn_card_valid) begin
-            case (drawn_card_reg[3:0])
-              `VALUE_SKIP, `VALUE_REVERSE: begin
-                action_reg <= 3'd1;
-                state      <= STATE_PLAYER_TURN;
-              end
-              `VALUE_DRAW_TWO: begin
-                action_reg      <= 3'd2;
+            action_reg <= player_draw_action;
+            case (player_draw_action)
+              3'd1: state <= STATE_PLAYER_TURN;
+              3'd2: begin
                 penalize_player <= 1'b0;
                 penalty_count   <= 3'd2;
                 return_state    <= STATE_DEAL_PENALTY;
                 state           <= STATE_CHECK_DECK;
               end
-              `VALUE_WILD_DRAW_FOUR: begin
-                action_reg      <= 3'd4;
+              3'd4: begin
                 penalize_player <= 1'b0;
                 penalty_count   <= 3'd4;
                 return_state    <= STATE_DEAL_PENALTY;
                 state           <= STATE_CHECK_DECK;
               end
-              default: begin
-                action_reg <= 3'd0;
-                state      <= STATE_CPU_TURN;
-              end
+              default: state <= STATE_CPU_TURN;
             endcase
           end else begin
             state <= STATE_CPU_TURN;
@@ -501,13 +500,7 @@ module uno_fsm (
               card_in_reg <= {top_card[5:4], cpu_card_out[3:0]};
             else
               card_in_reg <= cpu_card_out;
-            case (cpu_card_out[3:0])
-              `VALUE_SKIP, `VALUE_REVERSE: action_reg <= 3'd1;
-              `VALUE_DRAW_TWO:             action_reg <= 3'd2;
-              `VALUE_WILD:                 action_reg <= 3'd3;
-              `VALUE_WILD_DRAW_FOUR:       action_reg <= 3'd4;
-              default:                     action_reg <= 3'd0;
-            endcase
+            action_reg <= cpu_play_action;
             state <= STATE_CPU_PLAY;
           end else if (cpu_need_to_draw && !cpu_drew) begin
             cpu_drew <= 1'b1;
@@ -612,110 +605,18 @@ module uno_fsm (
     ((state == STATE_PLAYER_DRAW_CHECK) && drawn_card_valid &&
      (drawn_card_reg[3:0] == `VALUE_SKIP || drawn_card_reg[3:0] == `VALUE_REVERSE));
 
-  always @(posedge clock) begin
-    if (reset) begin
-      win_latch  <= 1'b0;
-      lose_latch <= 1'b0;
-    end else begin
-      if (state == STATE_WIN)  win_latch  <= 1'b1;
-      if (state == STATE_LOSE) lose_latch <= 1'b1;
-    end
-  end
-
-  always @(posedge clock) begin
-    if (reset) begin
-      player_turn_latch <= 1'b0;
-      player_turn_timer <= 32'b0;
-    end else if (player_turn_signal) begin
-      player_turn_latch <= 1'b1;
-      player_turn_timer <= 32'b0;
-    end else if (player_turn_latch) begin
-      if (player_turn_timer == `TWO_SECONDS_CLOCK - 1) begin
-        player_turn_latch <= 1'b0;
-        player_turn_timer <= 32'b0;
-      end else
-        player_turn_timer <= player_turn_timer + 1'b1;
-    end
-  end
-
-  always @(posedge clock) begin
-    if (reset) begin
-      cpu_turn_latch <= 1'b0;
-      cpu_turn_timer <= 32'b0;
-    end else if (cpu_turn_signal) begin
-      cpu_turn_latch <= 1'b1;
-      cpu_turn_timer <= 32'b0;
-    end else if (cpu_turn_latch) begin
-      if (cpu_turn_timer == `TWO_SECONDS_CLOCK - 1) begin
-        cpu_turn_latch <= 1'b0;
-        cpu_turn_timer <= 32'b0;
-      end else
-        cpu_turn_timer <= cpu_turn_timer + 1'b1;
-    end
-  end
-
-  always @(posedge clock) begin
-    if (reset) begin
-      invalid_move_latch <= 1'b0;
-      invalid_move_timer <= 32'b0;
-    end else if (player_invalid_move) begin
-      invalid_move_latch <= 1'b1;
-      invalid_move_timer <= 32'b0;
-    end else if (invalid_move_latch) begin
-      if (invalid_move_timer == `TWO_SECONDS_CLOCK - 1) begin
-        invalid_move_latch <= 1'b0;
-        invalid_move_timer <= 32'b0;
-      end else
-        invalid_move_timer <= invalid_move_timer + 1'b1;
-    end
-  end
-
-  always @(posedge clock) begin
-    if (reset) begin
-      draw_action_latch <= 1'b0;
-      draw_action_timer <= 32'b0;
-    end else if (led_draw_action) begin
-      draw_action_latch <= 1'b1;
-      draw_action_timer <= 32'b0;
-    end else if (draw_action_latch) begin
-      if (draw_action_timer == `TWO_SECONDS_CLOCK - 1) begin
-        draw_action_latch <= 1'b0;
-        draw_action_timer <= 32'b0;
-      end else
-        draw_action_timer <= draw_action_timer + 1'b1;
-    end
-  end
-
-  always @(posedge clock) begin
-    if (reset) begin
-      skip_action_latch <= 1'b0;
-      skip_action_timer <= 32'b0;
-    end else if (led_skip_action) begin
-      skip_action_latch <= 1'b1;
-      skip_action_timer <= 32'b0;
-    end else if (skip_action_latch) begin
-      if (skip_action_timer == `TWO_SECONDS_CLOCK - 1) begin
-        skip_action_latch <= 1'b0;
-        skip_action_timer <= 32'b0;
-      end else
-        skip_action_timer <= skip_action_timer + 1'b1;
-    end
-  end
-
-  always @(*) begin
-    LEDR_REG = 18'b0;
-    LEDG_REG = 9'b0;
-    if (win_latch) begin
-      LEDR_REG[5] = 1'b1;
-    end else if (lose_latch) begin
-      LEDR_REG[6] = 1'b1;
-    end else begin
-      LEDR_REG[0] = player_turn_latch;
-      LEDR_REG[1] = cpu_turn_latch;
-      LEDR_REG[2] = invalid_move_latch;
-      LEDR_REG[3] = draw_action_latch;
-      LEDR_REG[4] = skip_action_latch;
-    end
-  end
+  led_interface led_interface_inst (
+    .clock        (clock),
+    .reset        (reset),
+    .player_turn  (player_turn_signal),
+    .cpu_turn     (cpu_turn_signal),
+    .invalid_move (player_invalid_move),
+    .draw_action  (led_draw_action),
+    .skip_action  (led_skip_action),
+    .win          (state == STATE_WIN),
+    .lose         (state == STATE_LOSE),
+    .ledr         (LEDR),
+    .ledg         (LEDG)
+  );
 
 endmodule

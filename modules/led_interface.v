@@ -47,14 +47,14 @@ module led_interface(
   always @ (posedge clock) begin
     if (reset) begin
       player_turn_latch <= 1'b0;
-      player_turn_timer <= 27'b0;
+      player_turn_timer <= 32'b0;
     end else if (player_turn) begin
       player_turn_latch <= 1'b1;
-      player_turn_timer <= 27'b0;
+      player_turn_timer <= 32'b0;
     end else if (player_turn_latch) begin
       if (player_turn_timer == `TWO_SECONDS_CLOCK - 1) begin
         player_turn_latch <= 1'b0;
-        player_turn_timer <= 27'b0;
+        player_turn_timer <= 32'b0;
       end else
         player_turn_timer <= player_turn_timer + 1'b1;
     end
@@ -63,14 +63,14 @@ module led_interface(
   always @ (posedge clock) begin
     if (reset) begin
       cpu_turn_latch <= 1'b0;
-      cpu_turn_timer <= 27'b0;
+      cpu_turn_timer <= 32'b0;
     end else if (cpu_turn) begin
       cpu_turn_latch <= 1'b1;
-      cpu_turn_timer <= 27'b0;
+      cpu_turn_timer <= 32'b0;
     end else if (cpu_turn_latch) begin
       if (cpu_turn_timer == `TWO_SECONDS_CLOCK - 1) begin
         cpu_turn_latch <= 1'b0;
-        cpu_turn_timer <= 27'b0;
+        cpu_turn_timer <= 32'b0;
       end else
         cpu_turn_timer <= cpu_turn_timer + 1'b1;
     end
@@ -79,14 +79,14 @@ module led_interface(
   always @ (posedge clock) begin
     if (reset) begin
       invalid_move_latch <= 1'b0;
-      invalid_move_timer <= 27'b0;
+      invalid_move_timer <= 32'b0;
     end else if (invalid_move) begin
       invalid_move_latch <= 1'b1;
-      invalid_move_timer <= 27'b0;
+      invalid_move_timer <= 32'b0;
     end else if (invalid_move_latch) begin
       if (invalid_move_timer == `TWO_SECONDS_CLOCK - 1) begin
         invalid_move_latch <= 1'b0;
-        invalid_move_timer <= 27'b0;
+        invalid_move_timer <= 32'b0;
       end else
         invalid_move_timer <= invalid_move_timer + 1'b1;
     end
@@ -95,14 +95,14 @@ module led_interface(
   always @ (posedge clock) begin
     if (reset) begin
       draw_action_latch <= 1'b0;
-      draw_action_timer <= 27'b0;
+      draw_action_timer <= 32'b0;
     end else if (draw_action) begin
       draw_action_latch <= 1'b1;
-      draw_action_timer <= 27'b0;
+      draw_action_timer <= 32'b0;
     end else if (draw_action_latch) begin
       if (draw_action_timer == `TWO_SECONDS_CLOCK - 1) begin
         draw_action_latch <= 1'b0;
-        draw_action_timer <= 27'b0;
+        draw_action_timer <= 32'b0;
       end else
         draw_action_timer <= draw_action_timer + 1'b1;
     end
@@ -111,14 +111,14 @@ module led_interface(
   always @ (posedge clock) begin
     if (reset) begin
       skip_action_latch <= 1'b0;
-      skip_action_timer <= 27'b0;
+      skip_action_timer <= 32'b0;
     end else if (skip_action) begin
       skip_action_latch <= 1'b1;
-      skip_action_timer <= 27'b0;
+      skip_action_timer <= 32'b0;
     end else if (skip_action_latch) begin
       if (skip_action_timer == `TWO_SECONDS_CLOCK - 1) begin
         skip_action_latch <= 1'b0;
-        skip_action_timer <= 27'b0;
+        skip_action_timer <= 32'b0;
       end else
         skip_action_timer <= skip_action_timer + 1'b1;
     end

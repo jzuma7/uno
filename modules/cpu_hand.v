@@ -1,4 +1,5 @@
 `include "../include/timing_definitions.vh"
+`include "../include/memory_definitions.vh"
 
 module cpu_hand (
   input clock,
@@ -27,7 +28,7 @@ module cpu_hand (
   reg [1:0] state;
   reg [31:0] timer;
   reg [6:0] hand_count_reg;
-  reg [5:0] cpu_hand [0:63];
+  reg [5:0] cpu_hand [0:`DECK_SIZE - 1]; // pior caso: mão acumula quase todo o baralho via penalidades/draws
   reg [6:0] cpu_hand_play_pointer;
 
   assign turn_done  = turn_done_reg;

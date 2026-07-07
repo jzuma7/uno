@@ -52,7 +52,10 @@ module shuffler(
 
           if(start) begin
             load_pointer <= 0;
-            state <= STATE_LOADING;
+            // card_count == 0: nada a carregar/embaralhar; card_count - 1
+            // estouraria para 127 (7 bits sem sinal) e faria LOADING
+            // percorrer endereços fora de card_buffer[0:107].
+            state <= (card_count == 0) ? STATE_RESETTING : STATE_LOADING;
           end
         end
         STATE_LOADING: begin
@@ -63,8 +66,15 @@ module shuffler(
           load_pointer <= load_pointer + 1;
 
           if(load_pointer == card_count - 1) begin
-            state <= STATE_SHUFFLING;
-            shuffle_pointer <= card_count - 1;
+            // card_count == 1: nenhum swap necessário; shuffle_pointer
+            // partiria de 0 e nunca atingiria a condição de saída (==1),
+            // decrementando para 127 e lendo/escrevendo fora do buffer.
+            if(card_count == 1)
+              state <= STATE_RESETTING;
+            else begin
+              state <= STATE_SHUFFLING;
+              shuffle_pointer <= card_count - 1;
+            end
           end
         end
         STATE_SHUFFLING: begin
@@ -79,8 +89,10 @@ module shuffler(
             state <= STATE_RESETTING;
         end
         STATE_RESETTING: begin
-          state <= STATE_WRITING;
           write_pointer <= 0;
+          // card_count == 0: nada a escrever; pula WRITING para não
+          // escrever 1 carta de lixo (card_buffer[0] nunca foi carregado).
+          state <= (card_count == 0) ? STATE_DONE : STATE_WRITING;
         end
         STATE_WRITING: begin
           write_pointer <= write_pointer + 1;
@@ -89,7 +101,14 @@ module shuffler(
             state <= STATE_DONE;
         end
         STATE_DONE: begin
+          // volta para IDLE no ciclo seguinte (mesmo padrão do card_dealer.v).
+          // done não pode ficar preso em nível alto: se ficasse, uma nova
+          // chamada (ex: reembaralho após o deck inicial) pulsaria start no
+          // mesmo ciclo em que a uno_fsm ainda lê done=1 daqui, e a uno_fsm
+          // sairia de STATE_RESHUFFLE achando que já terminou, sem esperar
+          // o novo LOADING/SHUFFLING/WRITING de fato acontecer.
           lfsr <= {lfsr[5:0], lfsr[6] ^ lfsr[5]};
+          state <= STATE_IDLE;
         end
         default: begin
           lfsr <= {lfsr[5:0], lfsr[6] ^ lfsr[5]};
