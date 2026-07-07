@@ -18,11 +18,6 @@ module memory(
   output [6:0] discard_pointer_out
 );
 
-  localparam OPERATION_IDLE = 2'b00;
-  localparam OPERATION_LOAD_CARD = 2'b11;
-  localparam OPERATION_DRAW_CARD = 2'b01;
-  localparam OPERATION_DISCARD_CARD = 2'b10;
-
   reg [5:0] top_card_reg;
   reg [5:0] deck [0:`DECK_SIZE - 1];
   reg [5:0] discard_pile [0:`DISCARD_SIZE - 1];
@@ -53,18 +48,18 @@ module memory(
         discard_pointer <= 0;
       end else begin
         case(memory_controller)
-          OPERATION_IDLE: begin
+          `OPERATION_IDLE: begin
           end
-          OPERATION_DRAW_CARD: begin
+          `OPERATION_DRAW_CARD: begin
             if(!deck_empty) draw_pointer <= draw_pointer + 1;
           end
-          OPERATION_LOAD_CARD: begin
+          `OPERATION_LOAD_CARD: begin
             if(load_pointer < `DECK_SIZE) begin
               deck[load_pointer] <= card_in;
               load_pointer <= load_pointer + 1;
             end
           end
-          OPERATION_DISCARD_CARD: begin
+          `OPERATION_DISCARD_CARD: begin
             if(discard_pointer < `DISCARD_SIZE) begin
               discard_pile[discard_pointer] <= card_in;
               top_card_reg <= card_in;

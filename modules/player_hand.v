@@ -11,6 +11,7 @@ module player_hand (
   input special_draw,
   input write_enable,
   input [5:0] card_in,
+  input end_turn,
 
   output play_card,
   output invalid_move,
@@ -64,7 +65,9 @@ module player_hand (
         end
 
         STATE_PLAY: begin
-          if (play && valid_play && hand_count_reg > 0) begin
+          if (end_turn) begin
+            state <= STATE_DONE;
+          end else if (play && valid_play && hand_count_reg > 0) begin
             player_hand[player_hand_play_pointer] <= player_hand[hand_count_reg - 1];
             hand_count_reg <= hand_count_reg - 1;
             player_hand_play_pointer <= 0;

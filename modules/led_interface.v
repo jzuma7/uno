@@ -1,4 +1,4 @@
-`include "timing_definitions.vh"
+`include "../include/timing_definitions.vh"
 
 module led_interface(
   input clock,
@@ -23,8 +23,11 @@ module led_interface(
   reg draw_action_latch;
   reg skip_action_latch;
 
-  reg [17:0] ledr;
-  reg [8:0] ledg;
+  reg [17:0] ledr_reg;
+  reg [8:0] ledg_reg;
+
+  assign ledr = ledr_reg;
+  assign ledg = ledg_reg;
 
   reg [31:0] player_turn_timer, cpu_turn_timer, invalid_move_timer;
   reg [31:0] draw_action_timer, skip_action_timer;
@@ -123,14 +126,14 @@ module led_interface(
 
   always @ (*) begin
     if (win_latch) begin
-      ledg = 9'h1FF;
-      ledr = 18'b0;
+      ledg_reg = 9'h1FF;
+      ledr_reg = 18'b0;
     end else if (lose_latch) begin
-      ledg = 9'b0;
-      ledr = 18'h3FFFF;
+      ledg_reg = 9'b0;
+      ledr_reg = 18'h3FFFF;
     end else begin
-      ledg = 9'b0;
-      ledr = {13'b0, invalid_move_latch, skip_action_latch,
+      ledg_reg = 9'b0;
+      ledr_reg = {13'b0, invalid_move_latch, skip_action_latch,
         draw_action_latch, cpu_turn_latch, player_turn_latch};
     end
   end
