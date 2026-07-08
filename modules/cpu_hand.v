@@ -25,6 +25,7 @@ module cpu_hand (
   reg turn_done_reg;
   reg card_received;    // ao menos uma carta foi recebida em STATE_DRAW
   reg drew_for_play;    // entrou em STATE_DRAW por need_to_draw (não por penalidade)
+  reg previous_turn;    // detecta borda de subida de turn (turn fica em nível alto por vários ciclos)
   reg [1:0] state;
   reg [31:0] timer;
   reg [6:0] hand_count_reg;
@@ -35,7 +36,7 @@ module cpu_hand (
   assign hand_count = hand_count_reg;
   assign card_out   = cpu_hand[cpu_hand_play_pointer];
   assign play_card  = (state == STATE_PLAY && valid_play);
-  assign need_to_draw = (hand_count_reg > 0) && (cpu_hand_play_pointer >= hand_count_reg);
+  assign need_to_draw = (state == STATE_PLAY) && (hand_count_reg > 0) && (cpu_hand_play_pointer >= hand_count_reg);
 
   always @ (posedge clock) begin
     if (reset) begin
@@ -46,7 +47,9 @@ module cpu_hand (
       hand_count_reg <= 0;
       state <= STATE_IDLE;
       cpu_hand_play_pointer <= 0;
+      previous_turn <= 0;
     end else begin
+      previous_turn <= turn;
       // AVISO: game_fsm não deve pulsar write_enable enquanto state==STATE_PLAY
       // e valid_play==1 — conflito de NBA em hand_count_reg.
       if (write_enable) begin
@@ -57,7 +60,7 @@ module cpu_hand (
       case (state)
         STATE_IDLE: begin
           turn_done_reg <= 0;
-          if (turn) begin
+          if (turn && !previous_turn) begin
             state <= STATE_PLAY;
             drew_for_play <= 0;
             cpu_hand_play_pointer <= 0;
