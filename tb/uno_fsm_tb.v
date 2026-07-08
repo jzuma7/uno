@@ -69,18 +69,25 @@ module uno_fsm_tb;
             // precisa mais decodificar LEDG/LEDR (que só existem para a
             // placa física e ficam latched por >=2s, sem servir de flag
             // confiável de fim de jogo no testbench).
+            // Turno do player lido direto de DUT.player_turn_signal (sinal
+            // interno da uno_fsm), não de LEDR_tb[0]: o LED fica latched por
+            // >=2s (requisito da placa física), então continua em 1 por
+            // muito tempo depois que o estado real já saiu de
+            // STATE_PLAYER_TURN. Usar o LED aqui faria o testbench continuar
+            // tentando PLAY/SELECT/DRAW bem depois do turno real ter
+            // terminado (no-op, mas mascara o estado real da FSM).
             while (!win_tb && !lose_tb) begin
-            if (LEDR_tb[0] == 1'b1) begin // Se Ã© o turno do jogador
+            if (DUT.player_turn_signal == 1'b1) begin // Se é o turno do jogador
                 tentativas = 0;
                 $display("\nJogador esta analisando a mao...");
-                while (LEDR_tb[0] == 1'b1 && tentativas < 20) begin
+                while (DUT.player_turn_signal == 1'b1 && tentativas < 20) begin
                     press_buton(2);
-                    if (LEDR_tb[0] == 1'b1) begin
+                    if (DUT.player_turn_signal == 1'b1) begin
                         press_buton(1);
                         tentativas = tentativas + 1;
                     end
                 end
-                if (LEDR_tb[0] == 1'b1) begin
+                if (DUT.player_turn_signal == 1'b1) begin
                     $display("Jogador nao tem carta valida. Comprando (DRAW)...");
                     press_buton(3);
                 end
