@@ -1,0 +1,7 @@
+`define DECK_SIZE    108
+`define DISCARD_SIZE 107
+
+`define OPERATION_IDLE          2'b00
+`define OPERATION_DRAW_CARD     2'b01
+`define OPERATION_DISCARD_CARD  2'b10
+`define OPERATION_LOAD_CARD     2'b11
