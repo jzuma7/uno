@@ -31,11 +31,18 @@ module uno_fsm_tb;
     localparam  CLK_PERIOD = 10;
     always #(CLK_PERIOD) clock_tb = ~clock_tb;
 
-    // buttons_interface.v só aceita a mudança depois de 999_999 ciclos de
-    // divergência constante entre ~key_raw e debounced_* -- ou seja, precisa
-    // de 1_000_000 bordas de clock com o botão parado num estado para o
-    // debounce disparar. Isso vale tanto para pressionar quanto para soltar.
+    // buttons_interface.v só aceita a mudança depois de `DEBOUNCE_THRESHOLD`
+    // ciclos de divergência constante entre ~key_raw e debounced_* -- ou seja,
+    // precisa de DEBOUNCE_THRESHOLD+1 bordas de clock com o botão parado num
+    // estado para o debounce disparar. Isso vale tanto para pressionar quanto
+    // para soltar. Compile com +define+SIM_FAST para reduzir esse valor (e o
+    // TWO_SECONDS_CLOCK usado pela led_interface/cpu_hand) só para simulação
+    // rápida -- a síntese real no Quartus nunca define SIM_FAST.
+`ifdef SIM_FAST
+    localparam DEBOUNCE_CYCLES = 10;
+`else
     localparam DEBOUNCE_CYCLES = 1_000_000;
+`endif
 
     task press_buton(input integer btn_idx);
         begin

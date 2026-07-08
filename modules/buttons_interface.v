@@ -1,3 +1,5 @@
+`include "../include/timing_definitions.vh"
+
 module buttons_interface(
   input clock,
   input [3:0] key_raw,
@@ -41,7 +43,7 @@ module buttons_interface(
   // KEY[0] — reset (nível contínuo, sem edge detection)
   always @ (posedge clock) begin
     if (~key_raw[0] != debounced_reset) begin
-      if (counter_reset == 20'd999_999) begin
+      if (counter_reset == `DEBOUNCE_THRESHOLD) begin
         debounced_reset <= ~key_raw[0];
         counter_reset   <= 0;
       end else
@@ -54,7 +56,7 @@ module buttons_interface(
   always @ (posedge clock) begin
     previous_select <= debounced_select;
     if (~key_raw[1] != debounced_select) begin
-      if (counter_select == 20'd999_999) begin
+      if (counter_select == `DEBOUNCE_THRESHOLD) begin
         debounced_select <= ~key_raw[1];
         counter_select   <= 0;
       end else
@@ -67,7 +69,7 @@ module buttons_interface(
   always @ (posedge clock) begin
     previous_play <= debounced_play;
     if (~key_raw[2] != debounced_play) begin
-      if (counter_play == 20'd999_999) begin
+      if (counter_play == `DEBOUNCE_THRESHOLD) begin
         debounced_play <= ~key_raw[2];
         counter_play   <= 0;
       end else
@@ -80,7 +82,7 @@ module buttons_interface(
   always @(posedge clock) begin
     previous_draw <= debounced_draw;
     if (~key_raw[3] != debounced_draw) begin
-      if (counter_draw == 20'd999_999) begin
+      if (counter_draw == `DEBOUNCE_THRESHOLD) begin
         debounced_draw <= ~key_raw[3];
         counter_draw   <= 0;
       end else
