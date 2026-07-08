@@ -7,7 +7,9 @@ module uno_fsm (
   input  [3:0] KEY,
   output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, HEX6, HEX7,
   output [17:0] LEDR,
-  output [8:0]  LEDG
+  output [8:0]  LEDG,
+  output win,
+  output lose
 );
 
   localparam STATE_INIT_DECK          = 5'd0;
@@ -82,6 +84,7 @@ module uno_fsm (
   reg        player_end_turn;
   wire       player_play_card;
   wire       player_invalid_move;
+  wire       player_turn_done;
   wire [5:0] player_card_out;
   wire [6:0] player_hand_count;
   wire       player_valid_play;
@@ -115,6 +118,8 @@ module uno_fsm (
                                : drawn_card_reg;
 
   assign clock = CLOCK_50;
+  assign win   = (state == STATE_WIN);
+  assign lose  = (state == STATE_LOSE);
 
   // card_in do player_hand: drawn_card_reg no check do draw, senão dealer
   assign player_hand_card_in = (state == STATE_PLAYER_DRAW_CHECK) ? drawn_card_reg
@@ -286,6 +291,7 @@ module uno_fsm (
     .end_turn      (player_end_turn),
     .play_card     (player_play_card),
     .invalid_move  (player_invalid_move),
+    .turn_done     (player_turn_done),
     .card_out      (player_card_out),
     .hand_count    (player_hand_count)
   );
@@ -560,7 +566,10 @@ module uno_fsm (
           end else begin
             if (return_state == STATE_DEAL_PENALTY) begin
               dealer_start         <= 1'b1;
-              dealer_cards_to_deal <= penalty_count;
+              // 1 carta por vez: deck_empty só garante >=1 carta, então
+              // uma penalidade de 2/4 precisa revalidar (e reembaralhar,
+              // se preciso) antes de cada carta — ver STATE_DEAL_PENALTY.
+              dealer_cards_to_deal <= 3'd1;
             end
             state <= return_state;
           end
@@ -570,7 +579,7 @@ module uno_fsm (
           if (shuffler_done) begin
             if (return_state == STATE_DEAL_PENALTY) begin
               dealer_start         <= 1'b1;
-              dealer_cards_to_deal <= penalty_count;
+              dealer_cards_to_deal <= 3'd1;
             end
             state <= return_state;
           end
@@ -578,7 +587,13 @@ module uno_fsm (
 
         STATE_DEAL_PENALTY: begin
           if (dealer_done) begin
-            if (penalize_player)
+            if (penalty_count > 3'd1) begin
+              // ainda faltam cartas desta penalidade: volta para
+              // STATE_CHECK_DECK e revalida deck_empty antes da próxima.
+              penalty_count <= penalty_count - 3'd1;
+              return_state  <= STATE_DEAL_PENALTY;
+              state         <= STATE_CHECK_DECK;
+            end else if (penalize_player)
               state <= STATE_CPU_TURN;
             else
               state <= STATE_PLAYER_TURN;
@@ -613,8 +628,8 @@ module uno_fsm (
     .invalid_move (player_invalid_move),
     .draw_action  (led_draw_action),
     .skip_action  (led_skip_action),
-    .win          (state == STATE_WIN),
-    .lose         (state == STATE_LOSE),
+    .win          (win),
+    .lose         (lose),
     .ledr         (LEDR),
     .ledg         (LEDG)
   );

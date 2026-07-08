@@ -9,23 +9,29 @@ module buttons_interface(
 );
 
   // canal KEY[0] — reset
-  reg debounced_reset;
-  reg [19:0] counter_reset;
+  // Valor inicial explícito: em FPGA os regs já nascem em 0, mas em
+  // simulação RTL (ModelSim/Icarus) um reg sem inicialização nasce em X.
+  // Sem isso, "if (~key_raw[0] != debounced_reset)" nunca é verdadeiro
+  // (comparação com X é X, e Verilog trata if(X) como falso), então
+  // counter_reset nunca conta e debounced_reset fica travado em X para
+  // sempre — reset nunca pulsa e a simulação nunca sai do estado inicial.
+  reg debounced_reset = 1'b0;
+  reg [19:0] counter_reset = 20'b0;
 
   // canal KEY[1] — select
-  reg debounced_select;
-  reg previous_select;
-  reg [19:0] counter_select;
+  reg debounced_select = 1'b0;
+  reg previous_select = 1'b0;
+  reg [19:0] counter_select = 20'b0;
 
   // canal KEY[2] — play
-  reg debounced_play;
-  reg previous_play;
-  reg [19:0] counter_play;
+  reg debounced_play = 1'b0;
+  reg previous_play = 1'b0;
+  reg [19:0] counter_play = 20'b0;
 
   // canal KEY[3] — draw
-  reg debounced_draw;
-  reg previous_draw;
-  reg [19:0] counter_draw;
+  reg debounced_draw = 1'b0;
+  reg previous_draw = 1'b0;
+  reg [19:0] counter_draw = 20'b0;
 
   assign reset = debounced_reset;
   assign play = debounced_play && !previous_play;
